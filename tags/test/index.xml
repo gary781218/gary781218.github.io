@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Test on 阿猩的程式蛋糕店</title>
+    <link>http://localhost:1313/tags/test/</link>
+    <description>Recent content in Test on 阿猩的程式蛋糕店</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-tw</language>
+    <lastBuildDate>Sat, 25 Jan 2025 17:00:00 +0800</lastBuildDate><atom:link href="http://localhost:1313/tags/test/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Hello World</title>
+      <link>http://localhost:1313/posts/helloworld/</link>
+      <pubDate>Sat, 25 Jan 2025 17:00:00 +0800</pubDate>
+      
+      <guid>http://localhost:1313/posts/helloworld/</guid>
+      <description>
+        
+          
+            外部顯示的內容
+          
+          
+        
+      </description>
+    </item>
+    
+  </channel>
+</rss>
