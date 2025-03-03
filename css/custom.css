@@ -1,0 +1,28 @@
+/* 修改文章標題顏色 */
+h3.post_link a {
+  color: #187a00; /* 替換為您想要的顏色，例如橘色 */
+  font-size: 22px;
+  font-weight: bold;
+}
+
+/* 滑鼠懸停時變色 */
+h3.post_link a:hover {
+  color: #0080ff; /* 例如藍色 */
+}
+
+h1.post_title {
+  color: #187a00; /* 替換為您想要的顏色，例如橘色 */
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.post_content h2 {
+  color: brown;
+  margin-top: 120px;
+  margin-bottom: 0px;
+  font-weight: bold;
+}
+
+strong {
+  color: #5100ff;
+}
