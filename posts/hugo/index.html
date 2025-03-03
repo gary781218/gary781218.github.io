@@ -161,6 +161,7 @@
     <li><a href="#開始使用-hugo-建立部落格">開始使用 Hugo 建立部落格</a></li>
     <li><a href="#參數設定測試">參數設定測試</a></li>
     <li><a href="#markdown-說明">MarkDown 說明</a></li>
+    <li><a href="#將靜態檔案掛在-github">將靜態檔案掛在 github</a></li>
     <li><a href="#待測試">待測試</a></li>
   </ul>
 </nav>
@@ -208,6 +209,10 @@
 </span></span><span style="display:flex;"><span>     ---
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>     我的第一篇文章
+</span></span></code></pre></div></li>
+<li>
+<p>使用 cmd 啟用部落格網站，就可以用瀏覽器開啟查看囉</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cmd" data-lang="cmd"><span style="display:flex;"><span>     hugo server
 </span></span></code></pre></div></li>
 </ol>
 <h2 id="參數設定測試">參數設定測試</h2>
@@ -266,6 +271,22 @@
 <h2 id="markdown-說明">MarkDown 說明</h2>
 <blockquote>
 <p>阿猩之前已有做過 MarkDown 的研究了，想進一步練習的就自行研究吧 <a href="https://dotblogs.com.tw/supergary/Series?Qq=Markdown">阿猩的 MarkDown 測試</a></p></blockquote>
+<h2 id="將靜態檔案掛在-github">將靜態檔案掛在 github</h2>
+<ol>
+<li>
+<p>建立新的 Repo，命名為 帳號.github.io</p>
+</li>
+<li>
+<p>開啟 cmd，進入 部落格專案資料價，並執行</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cmd" data-lang="cmd"><span style="display:flex;"><span>   hugo
+</span></span></code></pre></div></li>
+<li>
+<p>將 /publish 的內容，複製到 步驟 1 建立的 Repo 後，推送 push</p>
+</li>
+<li>
+<p>瀏覽器輸入 https://你的帳號.github.io/index.html</p>
+</li>
+</ol>
 <h2 id="待測試">待測試</h2>
 <ul>
 <li>分享複製時，顯示的圖片</li>
