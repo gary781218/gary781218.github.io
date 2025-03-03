@@ -1,0 +1,27 @@
+baseURL = "http://localhost:1313/"
+languageCode = "zh-rw"
+title = "阿猩的程式蛋糕店"
+theme = "hugo-clarity"
+
+[params]
+  author = "阿猩"
+  description = "熱衷於自己喜歡的事情，時間久了，就能讓生硬的內容變成一塊美味的蛋糕。"
+  keywords = ["阿猩", "部落格", "程式開發"]
+  logo = "/images/logo.png"
+  enableRobotsTXT = true
+  paginate = 10  # 每頁顯示 10 篇文章
+
+[[menu.main]]
+  name = "首頁"
+  url = "/"
+  weight = 1
+
+[[menu.main]]
+  name = "文章"
+  url = "/posts/"
+  weight = 2
+
+[[menu.main]]
+  name = "關於我"
+  url = "/about/"
+  weight = 3

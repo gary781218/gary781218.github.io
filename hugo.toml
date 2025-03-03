@@ -1,0 +1,47 @@
+baseURL = "https://gary781218.github.io/"
+languageCode = "zh-tw"
+title = "阿猩的程式蛋糕店"
+theme = "hugo-clarity"
+
+[params]
+  # 可看到的區域
+  # introDescription = "熱衷於自己喜歡的事情，時間久了，就能讓生硬的內容變成一塊美味的蛋糕。"
+  logo = "/images/logo.png"
+  iconsDir = "/images/"
+  footerLogo = "/images/favicon.ico"
+  fallBackOgImage = '/images/apple-touch-icon.png'
+  dateFormat = "2006-01-02"
+
+  # 網頁 SEO 用
+  author = "阿猩的程式蛋糕店"
+  description = "熱衷於自己喜歡的事情，時間久了，就能讓生硬的內容變成一塊美味的蛋糕。"
+  keywords = ["阿猩", "阿猩的", "程式蛋糕店", "技術分享", "程式開發"]
+
+  # 網誌設定用
+  numberOfTagsShown = 15
+  paginate = 10 
+  mobileNavigation = "right"
+  figurePositionShow = true
+  figurePositionLabel = "圖"
+
+  comments = true
+  enableSearch = true
+  showShare = true
+  
+  numberOfRecentPosts = 8
+
+
+[[menu.main]]
+  name = "首頁"
+  url = "/"
+  weight = 1
+
+[[menu.main]]
+  name = "文章"
+  url = "/posts/"
+  weight = 2
+
+[[menu.main]]
+  name = "關於我"
+  url = "/about/"
+  weight = 3
