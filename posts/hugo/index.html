@@ -102,8 +102,7 @@
   </nav>
 </header>
 
-    <main>
-  
+    <main> 
 <div class="grid-inverse wrap content">
   <article class="post_content">
     <h1 class="post_title">使用 Hugo 自建部落格</h1>
@@ -153,9 +152,9 @@
   </span>
   </div>
 
-      <div class="post_toc">
-        <h2>Overview</h2>
-        <nav id="TableOfContents">
+    <div class="post_toc">
+      <h2>Overview</h2>
+      <nav id="TableOfContents">
   <ul>
     <li><a href="#香蕉在哪裡">香蕉在哪裡</a></li>
     <li><a href="#開始使用-hugo-建立部落格">開始使用 Hugo 建立部落格</a></li>
@@ -164,7 +163,7 @@
     <li><a href="#將靜態檔案掛在-github">將靜態檔案掛在 github</a></li>
   </ul>
 </nav>
-      </div>
+    </div>
     
     <div class="post_body"><h2 id="香蕉在哪裡">香蕉在哪裡</h2>
 <blockquote>
@@ -286,14 +285,33 @@
 <p>瀏覽器輸入 <strong>https://你的帳號.github.io/index.html</strong></p>
 </li>
 </ol>
-
-    </div><div class="post_comments">
+</div><div class="post_comments">
+  
+    <div id="disqus_thread"></div>
+<script>
+    window.disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "a-xing-de-cheng-shi-dan-gao-dian" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
   
   
   
   
 </div>
-
 
 
 
@@ -347,8 +365,7 @@
     </div>
   </section>
 </aside>
-
-  
+ 
 </div>
     </main><svg width="0" height="0" class="hidden">
   <symbol viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" id="facebook">
