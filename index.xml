@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>阿猩的程式蛋糕店</title>
-    <link>http://localhost:1313/</link>
+    <link>https://gary781218.github.io/</link>
     <description>Recent content on 阿猩的程式蛋糕店</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-tw</language>
-    <lastBuildDate>Mon, 03 Mar 2025 10:25:00 +0800</lastBuildDate><atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 03 Mar 2025 10:25:00 +0800</lastBuildDate><atom:link href="https://gary781218.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>使用 Hugo 自建部落格</title>
-      <link>http://localhost:1313/posts/hugo/</link>
+      <link>https://gary781218.github.io/posts/hugo/</link>
       <pubDate>Mon, 03 Mar 2025 10:25:00 +0800</pubDate>
       
-      <guid>http://localhost:1313/posts/hugo/</guid>
+      <guid>https://gary781218.github.io/posts/hugo/</guid>
       <description>
         
           
