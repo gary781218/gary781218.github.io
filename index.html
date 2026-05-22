@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Concert</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; font-family:'Courier New',monospace; color:#fff; }
+canvas { position:fixed; top:0; left:0; z-index:1; }
+
+#start {
+  position:fixed; inset:0; z-index:50;
+  background:radial-gradient(ellipse at 50% 60%,#1a0040 0%,#06000f 70%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  transition:opacity .9s;
+}
+#start.out { opacity:0; pointer-events:none; }
+
+.ttl {
+  font-size:clamp(1.6rem,4vw,2.8rem); letter-spacing:.5em; text-transform:uppercase;
+  background:linear-gradient(90deg,#ff6ec7,#a855f7,#60a5fa);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.sub { color:#7744aa; font-size:.8rem; letter-spacing:.22em; text-align:center; }
+.wrap { width:min(420px,88vw); display:flex; flex-direction:column; gap:8px; }
+
+#urlInput {
+  background:rgba(255,255,255,.04); border:1px solid rgba(168,85,247,.35);
+  color:#fff; padding:13px 18px; width:100%;
+  font-family:'Courier New',monospace; font-size:13px; outline:none;
+  transition:border-color .3s,box-shadow .3s;
+}
+#urlInput:focus { border-color:rgba(168,85,247,.9); box-shadow:0 0 28px rgba(168,85,247,.18); }
+#urlInput::placeholder { color:#443355; }
+#urlInput.err { border-color:rgba(255,80,80,.9); }
+#urlErr { color:#ff6060; font-size:11px; letter-spacing:.12em; display:none; }
+
+.or-sep { display:flex; align-items:center; gap:10px; color:#332244; font-size:10px; letter-spacing:.25em; }
+.or-sep::before,.or-sep::after { content:''; flex:1; height:1px; background:rgba(168,85,247,.18); }
+
+#fileLabel {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:rgba(255,255,255,.03); border:1px dashed rgba(168,85,247,.3);
+  color:#886699; padding:11px 18px; width:100%; cursor:pointer;
+  font-family:'Courier New',monospace; font-size:13px; letter-spacing:.2em;
+  transition:border-color .3s,color .3s;
+}
+#fileLabel:hover { border-color:rgba(168,85,247,.7); color:#d8b4fe; }
+#fileLabel.picked { border-color:rgba(100,220,120,.5); color:#88ffaa; border-style:solid; }
+#fileName { color:#557755; font-size:10px; letter-spacing:.15em; text-align:center; display:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+#audioWrap { position:fixed; bottom:20px; right:20px; z-index:20; display:none; }
+#audioWrap audio { display:block; width:267px; height:36px; outline:none; filter:invert(1) hue-rotate(200deg) brightness(.8); }
+#audioToggle { background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:10px; letter-spacing:.2em; padding:4px 10px; cursor:pointer; font-family:'Courier New',monospace; width:267px; display:block; transition:border-color .3s,color .3s; }
+#audioToggle:hover { border-color:rgba(168,85,247,.7); color:#d8b4fe; }
+  background:transparent; border:1px solid rgba(255,255,255,.35); color:#fff;
+  padding:13px; width:100%; font-family:'Courier New',monospace; font-size:15px;
+  cursor:pointer; letter-spacing:.45em; text-transform:uppercase;
+  transition:border-color .3s,box-shadow .3s,color .3s;
+}
+#enterBtn:hover { border-color:rgba(168,85,247,.9); color:#d8b4fe; box-shadow:0 0 40px rgba(168,85,247,.28); }
+
+.hint { color:#443355; font-size:10.5px; letter-spacing:.15em; text-align:center; line-height:2; }
+
+#hud  { position:fixed; bottom:20px; left:20px; z-index:10; color:rgba(255,255,255,.28); font-size:10px; letter-spacing:.2em; display:none; pointer-events:none; }
+#zone { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:10; font-size:11px; letter-spacing:.45em; text-transform:uppercase; display:none; pointer-events:none; text-shadow:0 0 24px currentColor; }
+#dot  { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:4px; height:4px; background:rgba(255,255,255,.5); border-radius:50%; display:none; z-index:10; pointer-events:none; }
+#lock { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:10; font-size:10px; letter-spacing:.3em; color:rgba(255,255,255,.3); display:none; pointer-events:none; animation:blink 2s infinite; }
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:.7}}
+
+#ytWrap { position:fixed; bottom:20px; right:20px; width:0; height:0; opacity:0; pointer-events:none; z-index:20; transition:opacity .5s,width .4s,height .4s; border-radius:6px; overflow:hidden; box-shadow:0 0 32px rgba(0,0,0,.85); }
+#ytWrap.active { width:267px; height:150px; opacity:.92; pointer-events:auto; }
+#ytWrap iframe { display:block; border:0; }
+#ytToggle { position:fixed; bottom:178px; right:20px; z-index:21; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.2); color:rgba(255,255,255,.6); font-size:10px; letter-spacing:.2em; padding:4px 10px; cursor:pointer; display:none; font-family:'Courier New',monospace; transition:border-color .3s,color .3s; }
+#ytToggle:hover { border-color:rgba(168,85,247,.7); color:#d8b4fe; }
+#ytErr { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:30; background:rgba(120,0,0,.82); color:#ffaaaa; font-size:11px; letter-spacing:.18em; padding:9px 22px; display:none; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div id="start">
+  <div class="ttl">Virtual Concert</div>
+  <div class="sub">互動式音樂展演空間</div>
+  <div class="wrap">
+    <input id="urlInput" type="text" placeholder="貼上 YouTube 連結（選填）" />
+    <div id="urlErr">⚠ 無法辨識此 YouTube 連結，請確認格式</div>
+    <div class="or-sep">OR</div>
+    <label id="fileLabel" for="audioFile">♪ &nbsp;上傳本機音檔</label>
+    <input type="file" id="audioFile" accept="audio/*" style="display:none">
+    <div id="fileName"></div>
+    <button id="enterBtn">▶ &nbsp; ENTER</button>
+  </div>
+  <div class="hint">
+    W A S D 移動 &nbsp;｜&nbsp; 滑鼠轉向（點擊畫面鎖定）<br>
+    靠近不同樂手區域，視覺效果與聲音隨之變化
+  </div>
+</div>
+
+<div id="hud">W A S D 移動 &nbsp;｜&nbsp; 點擊鎖定視角 &nbsp;｜&nbsp; ESC 解鎖</div>
+<div id="zone"></div>
+<div id="dot"></div>
+<div id="lock">CLICK TO LOOK AROUND</div>
+<div id="ytWrap"></div>
+<button id="ytToggle">▼ MUSIC</button>
+<div id="ytErr">⚠ 此影片不允許外部嵌入，已切換為內建音樂</div>
+<div id="audioWrap">
+  <button id="audioToggle">▼ MUSIC</button>
+  <audio id="audioPlayer" controls loop></audio>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+<script>
+// ─────────────────────────────────────────────
+//  Util
+// ─────────────────────────────────────────────
+function parseYTId(url) {
+  var pats = [/[?&]v=([^&#\s]+)/, /youtu\.be\/([^?&#\s]+)/, /youtube\.com\/embed\/([^?&#\s]+)/];
+  for (var i = 0; i < pats.length; i++) { var m = url.match(pats[i]); if (m) return m[1]; }
+  return null;
+}
+
+// File input preview
+var pickedFile = null;
+document.getElementById('audioFile').addEventListener('change', function(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  pickedFile = f;
+  // Clear YouTube input if a file is chosen
+  document.getElementById('urlInput').value = '';
+  var lbl = document.getElementById('fileLabel');
+  lbl.classList.add('picked');
+  lbl.textContent = '✓ ' + f.name;
+  var fn = document.getElementById('fileName');
+  fn.textContent = f.name;
+  fn.style.display = 'block';
+});
+
+// ─────────────────────────────────────────────
+//  THREE.JS  core
+// ─────────────────────────────────────────────
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ReinhardToneMapping;
+renderer.toneMappingExposure = 1.3;
+document.body.appendChild(renderer.domElement);
+
+var scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x000008);
+scene.fog = new THREE.FogExp2(0x04000e, 0.015);
+
+var camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 250);
+camera.position.set(0, 1.7, 22);
+
+var composer = new THREE.EffectComposer(renderer);
+composer.addPass(new THREE.RenderPass(scene, camera));
+var bloom = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.4, 0.55, 0.80);
+composer.addPass(bloom);
+
+// ─────────────────────────────────────────────
+//  Scene helpers
+// ─────────────────────────────────────────────
+function mk(geo, mat) { return new THREE.Mesh(geo, mat); }
+function addMesh(geo, mat, x, y, z, rx, ry, rz) {
+  var m = mk(geo, mat);
+  m.position.set(x, y, z);
+  if (rx) m.rotation.x = rx;
+  if (ry) m.rotation.y = ry;
+  if (rz) m.rotation.z = rz;
+  scene.add(m); return m;
+}
+function addPtLight(color, intensity, dist, x, y, z) {
+  var l = new THREE.PointLight(color, intensity, dist);
+  l.position.set(x, y, z); scene.add(l); return l;
+}
+
+// ─────────────────────────────────────────────
+//  Materials (shared)
+// ─────────────────────────────────────────────
+var mBlack  = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.55 });
+var mWhite  = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.4 });
+var mGold   = new THREE.MeshStandardMaterial({ color: 0xd4a017, metalness: 0.85, roughness: 0.25 });
+var mChrome = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9,  roughness: 0.15 });
+var mDark   = new THREE.MeshStandardMaterial({ color: 0x2d1a0a, roughness: 0.7 });
+var mWall   = new THREE.MeshStandardMaterial({ color: 0x070416, roughness: 0.95, side: THREE.BackSide });
+var mFloor  = new THREE.MeshStandardMaterial({ color: 0x05030f, roughness: 0.85, metalness: 0.25 });
+
+// ─────────────────────────────────────────────
+//  Room
+// ─────────────────────────────────────────────
+addMesh(new THREE.PlaneGeometry(54, 130), mFloor, 0, 0, -28, -Math.PI/2);
+addMesh(new THREE.PlaneGeometry(54, 130), new THREE.MeshStandardMaterial({ color: 0x030110, side: THREE.BackSide }), 0, 12, -28, Math.PI/2);
+addMesh(new THREE.BoxGeometry(0.4, 13, 130), mWall, -25, 6.5, -28);
+addMesh(new THREE.BoxGeometry(0.4, 13, 130), mWall,  25, 6.5, -28);
+addMesh(new THREE.BoxGeometry(54,  14, 0.4),  mWall,   0, 7,  -55);
+
+// Stage platform + lip
+addMesh(new THREE.BoxGeometry(48, 0.45, 26), new THREE.MeshStandardMaterial({ color: 0x0a0820 }), 0, 0.22, -41);
+addMesh(new THREE.BoxGeometry(48, 0.5,  0.4), new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x220055, emissiveIntensity: 1 }), 0, 0.47, -28.2);
+
+// Entrance arch
+[-9,-4,4,9].forEach(function(x) { addMesh(new THREE.BoxGeometry(0.65,11.5,0.65), mDark, x, 5.75, 17); });
+addMesh(new THREE.BoxGeometry(18.5, 0.5, 0.65), mDark, 0, 11.5, 17);
+
+// Ceiling truss
+for (var tx = -12; tx <= 12; tx += 6) {
+  addMesh(new THREE.BoxGeometry(0.18,0.18,20), mBlack, tx, 10.8, -40);
+  [-46,-40,-34].forEach(function(tz) { addMesh(new THREE.BoxGeometry(5.5,0.13,0.13), mBlack, tx, 10.8, tz); });
+}
+// Speaker stacks
+[-22,22].forEach(function(sx) {
+  addMesh(new THREE.BoxGeometry(2.5,4,2), mBlack, sx, 2, -29);
+  addMesh(new THREE.BoxGeometry(2,  6,2), mBlack, sx, 5, -29);
+});
+
+// ─────────────────────────────────────────────
+//  INSTRUMENTS
+// ─────────────────────────────────────────────
+
+// ── Drum Kit ──────────────────────────────────
+var drumParts = {};
+(function() {
+  var g = new THREE.Group();
+  g.position.set(0, 0.5, -45);
+
+  // Bass drum (on its side)
+  var bd = mk(new THREE.CylinderGeometry(0.58,0.58,0.65,20), mBlack);
+  bd.rotation.z = Math.PI/2; bd.position.set(0,0.08,0); g.add(bd);
+  var bdFace = mk(new THREE.CircleGeometry(0.58,20), new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.5 }));
+  bdFace.rotation.y = Math.PI/2; bdFace.position.set(0.34,0.08,0); g.add(bdFace);
+  drumParts.bdFace = bdFace; drumParts.bdFaceBaseX = 0.34;
+
+  // Kick pedal
+  var pedal = mk(new THREE.BoxGeometry(0.12,0.03,0.35), mChrome);
+  pedal.position.set(0.65,0,-0.05); g.add(pedal);
+
+  // Snare
+  var sn = mk(new THREE.CylinderGeometry(0.22,0.22,0.14,16), mWhite);
+  sn.position.set(-0.78,0.62,0.55); sn.rotation.x=0.12; g.add(sn);
+  drumParts.snare = sn; drumParts.snareBaseY = 0.62;
+
+  // Hi-hat stand + cymbals
+  var hhst = mk(new THREE.CylinderGeometry(0.01,0.01,1.5,6), mChrome);
+  hhst.position.set(0.88,0.75,0.45); g.add(hhst);
+  var hhb = mk(new THREE.CylinderGeometry(0.28,0.28,0.014,16), mGold);
+  hhb.position.set(0.88,1.48,0.45); g.add(hhb);
+  var hht = mk(new THREE.CylinderGeometry(0.26,0.26,0.011,16), mGold);
+  hht.position.set(0.88,1.51,0.45); g.add(hht);
+  drumParts.hht = hht; drumParts.hhtBaseY = 1.51;
+
+  // Crash cymbal
+  var crash = mk(new THREE.CylinderGeometry(0.33,0.33,0.011,16), mGold);
+  crash.position.set(-0.52,1.82,-0.35); crash.rotation.x=0.18; g.add(crash);
+  drumParts.crash = crash;
+
+  // Floor tom + rack tom
+  var ft = mk(new THREE.CylinderGeometry(0.22,0.22,0.22,16), mBlack);
+  ft.position.set(0.72,0.3,0.68); g.add(ft);
+  var rt = mk(new THREE.CylinderGeometry(0.17,0.17,0.16,16), mBlack);
+  rt.position.set(-0.28,1.32,-0.14); g.add(rt);
+
+  scene.add(g);
+  drumParts.group = g;
+})();
+
+// ── Electric Guitar ────────────────────────────
+var guitarGroup;
+(function() {
+  var g = new THREE.Group();
+  g.position.set(-13, 0, -37);
+  var mBody = new THREE.MeshStandardMaterial({ color:0xcc1111, roughness:0.3, metalness:0.15 });
+
+  // Body lower bout
+  var lb = mk(new THREE.BoxGeometry(0.9,1.0,0.12), mBody); lb.position.y=0.5; g.add(lb);
+  // Body upper bout
+  var ub = mk(new THREE.BoxGeometry(0.7,0.65,0.12), mBody); ub.position.y=1.18; g.add(ub);
+  // Body middle connector
+  var mid = mk(new THREE.BoxGeometry(0.38,0.3,0.12), mBody); mid.position.y=0.97; g.add(mid);
+  // Neck
+  var neck = mk(new THREE.BoxGeometry(0.1,1.45,0.07), mDark); neck.position.y=2.22; g.add(neck);
+  // Headstock
+  var head = mk(new THREE.BoxGeometry(0.19,0.3,0.065), mDark); head.position.y=3.08; g.add(head);
+  // Pickguard
+  var pg = mk(new THREE.BoxGeometry(0.35,0.58,0.01), new THREE.MeshStandardMaterial({ color:0x222222 }));
+  pg.position.set(-0.1,0.6,0.068); g.add(pg);
+  // Tuning pegs
+  [-0.062,0.062].forEach(function(px) {
+    [0.04,-0.04,-0.13].forEach(function(py) {
+      var peg = mk(new THREE.SphereGeometry(0.018,6,6), mGold);
+      peg.position.set(px, 3.08+py, 0); g.add(peg);
+    });
+  });
+  // Stand
+  var sb = mk(new THREE.BoxGeometry(0.5,0.04,0.4), new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.6 }));
+  sb.position.y=0.02; g.add(sb);
+  var sp = mk(new THREE.CylinderGeometry(0.012,0.012,1.3,8), mChrome);
+  sp.position.set(0,0.67,0.12); g.add(sp);
+
+  g.rotation.z = 0.04;
+  scene.add(g);
+  guitarGroup = g;
+})();
+
+// ── Bass Guitar ───────────────────────────────
+var bassGroup;
+(function() {
+  var g = new THREE.Group();
+  g.position.set(13, 0, -37);
+  var mBody = new THREE.MeshStandardMaterial({ color:0x1a1a2e, roughness:0.3, metalness:0.25 });
+
+  var lb  = mk(new THREE.BoxGeometry(0.88,1.0,0.12), mBody); lb.position.y=0.5; g.add(lb);
+  var ub  = mk(new THREE.BoxGeometry(0.68,0.62,0.12), mBody); ub.position.y=1.17; g.add(ub);
+  var mid = mk(new THREE.BoxGeometry(0.38,0.3,0.12), mBody); mid.position.y=0.96; g.add(mid);
+  var neck= mk(new THREE.BoxGeometry(0.11,1.7,0.07), mDark); neck.position.y=2.35; g.add(neck);
+  var head= mk(new THREE.BoxGeometry(0.2,0.3,0.065), mDark); head.position.y=3.28; g.add(head);
+  // Frets (thin lines)
+  [1.9,2.05,2.2,2.35,2.5,2.65,2.8,2.95].forEach(function(y) {
+    var f = mk(new THREE.BoxGeometry(0.11,0.008,0.005), mChrome);
+    f.position.set(0,y,0.038); g.add(f);
+  });
+  // Stand
+  var sb = mk(new THREE.BoxGeometry(0.5,0.04,0.4), new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.6 }));
+  sb.position.y=0.02; g.add(sb);
+  var sp = mk(new THREE.CylinderGeometry(0.012,0.012,1.3,8), mChrome);
+  sp.position.set(0,0.67,0.12); g.add(sp);
+
+  g.rotation.z = -0.04;
+  scene.add(g);
+  bassGroup = g;
+})();
+
+// ── Microphone Stand ──────────────────────────
+var micGroup;
+(function() {
+  var g = new THREE.Group();
+  g.position.set(0, 0, -32);
+
+  var base = mk(new THREE.CylinderGeometry(0.28,0.3,0.05,20), mBlack);
+  base.position.y=0.025; g.add(base);
+  var pole = mk(new THREE.CylinderGeometry(0.018,0.020,1.7,8), mChrome);
+  pole.position.y=0.9; g.add(pole);
+  var boom = mk(new THREE.CylinderGeometry(0.011,0.011,0.55,8), mChrome);
+  boom.rotation.z=Math.PI/5; boom.position.set(-0.14,1.68,0); g.add(boom);
+  var micBody = mk(new THREE.CylinderGeometry(0.038,0.038,0.15,12), mBlack);
+  micBody.rotation.z=Math.PI/5; micBody.position.set(-0.28,1.75,0); g.add(micBody);
+  var micHead = mk(new THREE.SphereGeometry(0.052,12,8), new THREE.MeshStandardMaterial({ color:0x333333, metalness:0.3 }));
+  micHead.position.set(-0.37,1.85,0); g.add(micHead);
+  // Monitor wedge
+  var wedge = mk(new THREE.BoxGeometry(0.6,0.18,0.4), new THREE.MeshStandardMaterial({ color:0x111111, roughness:0.6 }));
+  wedge.position.set(0,0.3,0.45); wedge.rotation.x=-0.35; g.add(wedge);
+
+  scene.add(g);
+  micGroup = g;
+})();
+
+// ─────────────────────────────────────────────
+//  VJ PANELS  (5 screens, back of stage)
+// ─────────────────────────────────────────────
+var PW=2.1, PH=9.0, PZ=-49, PY=PH/2+0.5, PGAP=5.0;
+
+var PANELS = [
+  // 0 – Laser horizontal scanner
+  { name:'vocals', color:new THREE.Color(1.0,0.05,0.9), fs:[
+    'float n=fbm(vec2(uv.x*3.+t*.3,t*.25));',
+    'float scanY=fract(t*.3+n*.25);',
+    'float beam=pow(max(0.,1.-abs(uv.y-scanY)*18.),2.)*(1.+beat*1.5);',
+    'float grd=max(smoothstep(.01,.0,abs(fract(uv.x*9.)-.5)-.49),',
+    '            smoothstep(.01,.0,abs(fract(uv.y*16.)-.5)-.49))*.22;',
+    'float hline=sin(uv.y*70.+t*7.)*.025+.975;',
+    'vec3 c=baseColor*(beam+grd)*hline;',
+    'c+=vec3(1.,.2,.9)*beam*beat*.5;',
+    'return c*(1.2+intensity*.4);'].join('\n') },
+  // 1 – Equalizer bars
+  { name:'guitar', color:new THREE.Color(0.05,1.0,0.35), fs:[
+    'float cols=16.; float col=floor(uv.x*cols);',
+    'float h=clamp(fbm(vec2(col*.45,t*.85+col*.28))*.75+.25+beat*.35,0.,1.);',
+    'float active=step(1.-h,uv.y);',
+    'float gap=step(.88,fract(uv.x*cols));',
+    'float top=smoothstep(.045,.0,abs(uv.y-(1.-h)))*2.;',
+    'vec3 warm=mix(baseColor*1.3,vec3(1.,1.,.3),uv.y*.8);',
+    'vec3 c=warm*(active*(1.-gap)*.85+top*.45);',
+    'return c*(1.3+intensity*.3+beat*.2);'].join('\n') },
+  // 2 – Vortex ring portal
+  { name:'center', color:new THREE.Color(0.0,0.85,1.0), fs:[
+    'vec2 p=(uv-.5)*vec2(1.,2.8);',
+    'float r=length(p); float a=atan(p.y,p.x);',
+    'float n=fbm(vec2(a*.637+t*.09,r*3.-t*1.8));',
+    'float ring=pow(abs(sin(r*20.-t*5.+n*5.+beat*12.)),4.);',
+    'float core=exp(-r*4.)*(beat*.8+.25);',
+    'float spoke=pow(abs(sin(a*4.+t*2.5+n*2.5)),7.)*(1.-smoothstep(.0,.65,r));',
+    'vec3 c=baseColor*(ring*.8+core+spoke*.9);',
+    'c+=vec3(0.,.4,1.)*ring*beat*.6;',
+    'return c*(1.6+intensity*.5);'].join('\n') },
+  // 3 – Glitch digital noise
+  { name:'bass', color:new THREE.Color(0.15,0.25,1.0), fs:[
+    'float row=floor(uv.y*22.);',
+    'float gt=floor(t*10.+beat*6.);',
+    'float ox=(hash(vec2(row,gt))-.5)*(beat*.3+.04);',
+    'vec2 guv=vec2(uv.x+ox,uv.y);',
+    'float n=fbm(guv*4.5-t*.5);',
+    'float sl=sin(uv.y*100.+t*14.)*.02+.98;',
+    'float vb=smoothstep(.01,.0,abs(fract(guv.x*20.)-.5)-.49)*.55;',
+    'float hb=smoothstep(.01,.0,abs(fract(uv.y*22.)-.5)-.49)*.3;',
+    'vec3 c=baseColor*(n*.65+vb+hb)*sl;',
+    'c+=baseColor*step(.97,hash(vec2(floor(guv.x*36.),row+gt)))*(beat*.9+.1);',
+    'return c*(1.1+intensity*.5);'].join('\n') },
+  // 4 – Radial starburst
+  { name:'drums', color:new THREE.Color(1.0,0.35,0.0), fs:[
+    'vec2 p=uv-vec2(.5,.32); p.y*=2.0;',
+    'float r=length(p); float a=atan(p.y,p.x);',
+    'float n=fbm(vec2(a*1.2+t*.35,r*5.+t*.5));',
+    'float spk=pow(abs(sin(a*8.+t*2.2+n*2.5)),5.)*(1.-smoothstep(.0,.85,r));',
+    'float ring=pow(abs(sin(r*24.-t*7.+beat*12.+n*4.)),5.)*(1.-r*1.1);',
+    'float burst=exp(-r*3.5)*(beat+.15)*1.8;',
+    'vec3 c=baseColor*(spk+ring*.65);',
+    'c+=vec3(1.,.5,.0)*burst+vec3(1.,.15,.0)*spk*beat*.5;',
+    'return c*(1.35+intensity*.4+beat*.55);'].join('\n') }
+];
+
+var VS_P = 'varying vec2 vUv;\nvoid main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }';
+function makeFS(code) {
+  return [
+    'precision highp float;',
+    'uniform float time,intensity,beat; uniform vec3 baseColor;',
+    'varying vec2 vUv;',
+    'float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }',
+    'float noise(vec2 p){',
+    '  vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);',
+    '  float a=hash(i),b=hash(i+vec2(1,0)),c2=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));',
+    '  return mix(mix(a,b,f.x),mix(c2,d,f.x),f.y); }',
+    'float fbm(vec2 p){',
+    '  float v=0.,a=.5; mat2 R=mat2(.866,.5,-.5,.866);',
+    '  for(int i=0;i<5;i++){ v+=a*noise(p); p=R*p*2.08+vec2(31.7,41.1); a*=.5; }',
+    '  return v; }',
+    'vec3 panelFx(vec2 uv,float t,float intensity,float beat,vec3 baseColor){', code, '}',
+    'void main(){',
+    '  float grain=hash(vUv*900.+time*9.1)*.055;',
+    '  float vig=pow(vUv.x*(1.-vUv.x)*vUv.y*(1.-vUv.y)*16.,.4);',
+    '  vec3 col=max(panelFx(vUv,time,intensity,beat,baseColor)+grain,vec3(0.));',
+    '  col*=.25+vig*.75; gl_FragColor=vec4(col,1.); }'
+  ].join('\n');
+}
+
+var panelMats=[], panelLights=[];
+PANELS.forEach(function(cfg,i) {
+  var x=(i-2)*PGAP;
+  var mat=new THREE.ShaderMaterial({ vertexShader:VS_P, fragmentShader:makeFS(cfg.fs),
+    uniforms:{ time:{value:0}, intensity:{value:.5}, beat:{value:0}, baseColor:{value:cfg.color} } });
+  panelMats.push(mat);
+  var bezel=mk(new THREE.BoxGeometry(PW+.28,PH+.28,.22), mBlack);
+  bezel.position.set(x,PY,PZ-.06); scene.add(bezel);
+  var screen=mk(new THREE.PlaneGeometry(PW,PH), mat);
+  screen.position.set(x,PY,PZ); scene.add(screen);
+  var pl=addPtLight(cfg.color, 2.5, 22, x, PY, PZ+2.5);
+  panelLights.push(pl);
+  var strip=mk(new THREE.PlaneGeometry(PW,7), new THREE.MeshStandardMaterial({ color:0x000000, emissive:cfg.color, emissiveIntensity:.09, transparent:true, opacity:.35 }));
+  strip.rotation.x=-Math.PI/2; strip.position.set(x,.01,PZ+5); scene.add(strip);
+});
+
+// ─────────────────────────────────────────────
+//  LIGHTING
+// ─────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x070318, 0.9));
+[0x5500cc,0xcc0055,0x0033cc,0xcc3300,0x00bbcc].forEach(function(c,i) {
+  addPtLight(c, 3, 32, (i-2)*PGAP, 10, -44);
+});
+
+// Per-instrument spotlights (pulse with beat)
+var iLights = {
+  drums:  addPtLight(0xffcc66, 3, 22, 0,   10, -45),
+  guitar: addPtLight(0x66ff99, 3, 18, -13, 10, -37),
+  bass:   addPtLight(0x6699ff, 3, 18,  13, 10, -37),
+  vocals: addPtLight(0xff77cc, 3, 18,   0,  9, -32),
+};
+
+// ─────────────────────────────────────────────
+//  SWEEP LIGHTS + BEAM PROPS
+// ─────────────────────────────────────────────
+var sweepLights=[];
+[0xff2288,0x22aaff,0xffaa00,0x44ff99].forEach(function(c,i){
+  sweepLights.push({ light:addPtLight(c, 0, 34, 0, 9.5, -42), phase:i*Math.PI*.5 });
+});
+
+var beams=[], beamMats=[];
+[0xff44aa,0x44aaff,0xffbb33,0x55ffaa].forEach(function(c,i){
+  var mat=new THREE.MeshStandardMaterial({
+    color:0x000000, emissive:new THREE.Color(c), emissiveIntensity:.5,
+    transparent:true, opacity:.09, side:THREE.DoubleSide, depthWrite:false
+  });
+  var geo=new THREE.CylinderGeometry(.04,1.5,11,6,1,true);
+  var m=new THREE.Mesh(geo,mat);
+  m.position.set((i-1.5)*7, 10.4, -42);
+  scene.add(m);
+  beams.push({ mesh:m, phase:i*Math.PI*.5 });
+  beamMats.push(mat);
+});
+
+var strobeLight=addPtLight(0xffffff, 0, 70, 0, 8, -38);
+
+// ─────────────────────────────────────────────
+//  ZONES
+// ─────────────────────────────────────────────
+var ZONES = {
+  vocals: { pos:new THREE.Vector3(0,0,-32),  color:0xff44cc, hex:'#ff44cc', label:'🎤  VOCALS', inst:'vocals' },
+  guitar: { pos:new THREE.Vector3(-13,0,-37),color:0x44ff88, hex:'#44ff88', label:'🎸  GUITAR', inst:'guitar' },
+  bass:   { pos:new THREE.Vector3(13,0,-37), color:0x4488ff, hex:'#4488ff', label:'🎸  BASS',   inst:'bass'   },
+  drums:  { pos:new THREE.Vector3(0,0,-45),  color:0xff8844, hex:'#ff8844', label:'🥁  DRUMS',  inst:'drums'  }
+};
+var zoneLights={};
+Object.keys(ZONES).forEach(function(name) {
+  var z=ZONES[name];
+  zoneLights[name]=addPtLight(z.color,0.5,24,z.pos.x,8,z.pos.z);
+  var ring=mk(new THREE.RingGeometry(2.5,3.0,48), new THREE.MeshStandardMaterial({ emissive:new THREE.Color(z.color), emissiveIntensity:.4, side:THREE.DoubleSide, transparent:true, opacity:.15 }));
+  ring.rotation.x=-Math.PI/2; ring.position.set(z.pos.x,0.02,z.pos.z);
+  scene.add(ring); z.ring=ring;
+});
+
+// ─────────────────────────────────────────────
+//  WEB AUDIO MUSIC SYNTHESIZER
+// ─────────────────────────────────────────────
+var Synth = (function() {
+  var ctx, master, step=0, nextTime=0, running=false, timer=null;
+  var BPM = 126;
+  function sd() { return (60/BPM)/4; } // 16th-note duration
+
+  function kick(t) {
+    var o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(master);
+    o.type='sine';
+    o.frequency.setValueAtTime(160,t);
+    o.frequency.exponentialRampToValueAtTime(0.001,t+.36);
+    g.gain.setValueAtTime(1.1,t); g.gain.exponentialRampToValueAtTime(.001,t+.4);
+    o.start(t); o.stop(t+.42);
+    // click transient
+    var c=ctx.createOscillator(), cg=ctx.createGain();
+    c.connect(cg); cg.connect(master); c.frequency.value=2400;
+    cg.gain.setValueAtTime(.22,t); cg.gain.exponentialRampToValueAtTime(.001,t+.011);
+    c.start(t); c.stop(t+.013);
+  }
+
+  function snare(t) {
+    var len=Math.floor(ctx.sampleRate*.18), buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var filt=ctx.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=3200; filt.Q.value=.7;
+    var g=ctx.createGain();
+    src.connect(filt); filt.connect(g); g.connect(master);
+    g.gain.setValueAtTime(.88,t); g.gain.exponentialRampToValueAtTime(.001,t+.17);
+    src.start(t); src.stop(t+.2);
+    // snare tone
+    var o=ctx.createOscillator(), og=ctx.createGain();
+    o.connect(og); og.connect(master); o.type='triangle'; o.frequency.value=190;
+    og.gain.setValueAtTime(.28,t); og.gain.exponentialRampToValueAtTime(.001,t+.07);
+    o.start(t); o.stop(t+.09);
+  }
+
+  function hihat(t, open) {
+    var dur=open?.22:.04, len=Math.floor(ctx.sampleRate*(open?.22:.055));
+    var buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    var src=ctx.createBufferSource(); src.buffer=buf;
+    var filt=ctx.createBiquadFilter(); filt.type='highpass'; filt.frequency.value=7000;
+    var g=ctx.createGain();
+    src.connect(filt); filt.connect(g); g.connect(master);
+    g.gain.setValueAtTime(open?.38:.28,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    src.start(t); src.stop(t+dur+.01);
+  }
+
+  function bass(t, freq) {
+    var dur=sd()*3.5, o=ctx.createOscillator(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+    o.connect(f); f.connect(g); g.connect(master);
+    o.type='sawtooth'; o.frequency.value=freq;
+    f.type='lowpass'; f.frequency.value=400; f.Q.value=3;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.9,t+.018);
+    g.gain.exponentialRampToValueAtTime(.38,t+.12); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.start(t); o.stop(t+dur+.05);
+  }
+
+  var CHORDS={1:[220,261.6,329.6],2:[174.6,220,261.6],3:[261.6,329.6,392],4:[196,246.9,329.6]};
+  function guitar(t, id) {
+    var notes=CHORDS[id], dur=sd()*7;
+    notes.forEach(function(freq,i){
+      var o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(master); o.type='square'; o.frequency.value=freq;
+      o.detune.value=(i-1)*5+Math.random()*4-2;
+      var t2=t+i*.015;
+      g.gain.setValueAtTime(0,t2); g.gain.linearRampToValueAtTime(.09,t2+.025);
+      g.gain.exponentialRampToValueAtTime(.055,t2+.2); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+      o.start(t2); o.stop(t+dur+.05);
+    });
+  }
+
+  // Melody (sine with vibrato) → vocals zone
+  function melody(t, freq) {
+    var dur=sd()*1.8, o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(master); o.type='sine'; o.frequency.value=freq;
+    var vib=ctx.createOscillator(), vg=ctx.createGain();
+    vib.frequency.value=5.5; vg.gain.value=4;
+    vib.connect(vg); vg.connect(o.frequency);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.32,t+.06);
+    g.gain.exponentialRampToValueAtTime(.22,t+.3); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.start(t); vib.start(t); o.stop(t+dur); vib.stop(t+dur);
+  }
+
+  // 16-step patterns
+  var PAT = {
+    kick:   [1,0,0,0, 1,0,0,0, 1,0,0,1, 0,0,0,0],
+    snare:  [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hihat:  [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    openHH: [0,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,1,0],
+    bassF:  [55,0,55,0, 55,0,0,0, 49,0,49,0, 49,0,0,0],
+    guit:   [1,0,0,0, 0,0,0,0, 2,0,0,0, 0,0,0,0],
+    mel:    [220,0,261.6,0, 329.6,0,261.6,0, 246.9,0,220,0, 196,0,0,0]
+  };
+
+  var cbs={};
+  function fire(name) { if(cbs[name]) cbs[name](); }
+
+  function schedStep(s, t) {
+    var delay=Math.max(0,(t-ctx.currentTime)*1000);
+    if(PAT.kick[s])   { kick(t);              setTimeout(function(){fire('kick');},   delay); }
+    if(PAT.snare[s])  { snare(t);             setTimeout(function(){fire('snare');},  delay); }
+    if(PAT.hihat[s])  { hihat(t,false);       setTimeout(function(){fire('hihat');},  delay); }
+    if(PAT.openHH[s]) { hihat(t,true); }
+    if(PAT.bassF[s])  { bass(t,PAT.bassF[s]); setTimeout(function(){fire('bass');},   delay); }
+    if(PAT.guit[s])   { guitar(t,PAT.guit[s]);setTimeout(function(){fire('guitar');}, delay); }
+    if(PAT.mel[s])    { melody(t,PAT.mel[s]); setTimeout(function(){fire('melody');}, delay); }
+  }
+
+  function loop() {
+    if(!running) return;
+    while(nextTime < ctx.currentTime+0.15) {
+      schedStep(step, nextTime);
+      step=(step+1)%16;
+      nextTime+=sd();
+    }
+    timer=setTimeout(loop,30);
+  }
+
+  return {
+    start: function() {
+      ctx=new(window.AudioContext||window.webkitAudioContext)();
+      var comp=ctx.createDynamicsCompressor();
+      comp.threshold.value=-18; comp.knee.value=8; comp.ratio.value=4;
+      comp.attack.value=.003; comp.release.value=.2;
+      comp.connect(ctx.destination);
+      master=ctx.createGain(); master.gain.value=.7; master.connect(comp);
+      step=0; nextTime=ctx.currentTime+.05; running=true; loop();
+    },
+    on: function(name, fn) { cbs[name]=fn; }
+  };
+})();
+
+// ─────────────────────────────────────────────
+//  Visual beat state  (driven by Synth callbacks)
+// ─────────────────────────────────────────────
+var sim = {
+  kick:0, snare:0, hihat:0, bass:0, guitar:0, vocals:0,
+  decay: function(dt) {
+    this.kick   = Math.max(0, this.kick   - dt*7);
+    this.snare  = Math.max(0, this.snare  - dt*7);
+    this.hihat  = Math.max(0, this.hihat  - dt*12);
+    this.bass   = Math.max(0, this.bass   - dt*5);
+    this.guitar = Math.max(0, this.guitar - dt*5);
+    this.vocals = Math.max(0, this.vocals - dt*4);
+  },
+  get: function(name) {
+    var m={vocals:this.vocals,guitar:this.guitar,bass:this.bass,
+           drums:this.kick,center:(this.kick+this.snare+this.hihat)/3};
+    return m[name]!==undefined ? m[name] : 0;
+  }
+};
+
+// ─────────────────────────────────────────────
+//  Controls
+// ─────────────────────────────────────────────
+var keys={}, yaw=0, pitch=0, locked=false, running=false;
+var audioEl=null, ytIframe=null;
+document.addEventListener('keydown', function(e){ keys[e.code]=true; });
+document.addEventListener('keyup',   function(e){ keys[e.code]=false; });
+renderer.domElement.addEventListener('click', function(){ if(running) renderer.domElement.requestPointerLock(); });
+document.addEventListener('pointerlockchange', function() {
+  locked=(document.pointerLockElement===renderer.domElement);
+  document.getElementById('dot').style.display  = locked?'block':'none';
+  document.getElementById('lock').style.display = (running&&!locked)?'block':'none';
+});
+document.addEventListener('mousemove', function(e) {
+  if(!locked) return;
+  yaw  -= e.movementX*.002;
+  pitch = Math.max(-.42, Math.min(.38, pitch-e.movementY*.002));
+});
+
+// ─────────────────────────────────────────────
+//  Animation loop
+// ─────────────────────────────────────────────
+var SPEED=8, lastMs=performance.now();
+var _qY=new THREE.Quaternion(), _qX=new THREE.Quaternion();
+var _AY=new THREE.Vector3(0,1,0), _AX=new THREE.Vector3(1,0,0);
+
+(function loop() {
+  requestAnimationFrame(loop);
+  var now=performance.now(), dt=Math.min((now-lastMs)/1000,.05); lastMs=now;
+  var elapsed=now/1000;
+
+  sim.decay(dt);
+
+  // ── Movement ──
+  if(running) {
+    var fx=-Math.sin(yaw), fz=-Math.cos(yaw), rx=Math.cos(yaw), rz=-Math.sin(yaw);
+    if(keys['KeyW']||keys['ArrowUp'])    { camera.position.x+=fx*SPEED*dt; camera.position.z+=fz*SPEED*dt; }
+    if(keys['KeyS']||keys['ArrowDown'])  { camera.position.x-=fx*SPEED*dt; camera.position.z-=fz*SPEED*dt; }
+    if(keys['KeyA']||keys['ArrowLeft'])  { camera.position.x-=rx*SPEED*dt; camera.position.z-=rz*SPEED*dt; }
+    if(keys['KeyD']||keys['ArrowRight']) { camera.position.x+=rx*SPEED*dt; camera.position.z+=rz*SPEED*dt; }
+    camera.position.x=Math.max(-22,Math.min(22,camera.position.x));
+    camera.position.z=Math.max(-53,Math.min(24,camera.position.z));
+    camera.position.y=1.7;
+  } else {
+    yaw=elapsed*.07;
+    camera.position.set(Math.sin(elapsed*.07)*10, 1.9+Math.sin(elapsed*.18)*.4, -8+Math.sin(elapsed*.11)*5);
+  }
+  _qY.setFromAxisAngle(_AY,yaw); _qX.setFromAxisAngle(_AX,pitch);
+  camera.quaternion.copy(_qY).multiply(_qX);
+
+  // ── Panel shaders ──
+  panelMats.forEach(function(mat,i) {
+    var name=PANELS[i].name;
+    var audio=running?sim.get(name):.5+Math.sin(elapsed*1.2+i)*.22;
+    var bv=running?(
+      name==='drums'?sim.kick:name==='bass'?sim.bass:
+      name==='guitar'?sim.guitar:name==='vocals'?sim.vocals:
+      (sim.kick+sim.snare)*.5
+    ):Math.max(0,Math.sin(elapsed*2.5+i*.8))*.5;
+    mat.uniforms.time.value=elapsed;
+    mat.uniforms.intensity.value=.42+audio*.58;
+    mat.uniforms.beat.value=bv;
+    panelLights[i].intensity=1.6+audio*4.5;
+  });
+
+  // ── Instrument animations ──
+  // Drum kit
+  if(drumParts.bdFace) {
+    drumParts.bdFace.position.x = drumParts.bdFaceBaseX + sim.kick * 0.06;
+    drumParts.bdFace.scale.setScalar(1 + sim.kick * 0.04);
+  }
+  if(drumParts.snare) {
+    drumParts.snare.position.y = drumParts.snareBaseY + sim.snare * 0.04;
+  }
+  if(drumParts.hht) {
+    drumParts.hht.position.y = drumParts.hhtBaseY + sim.hihat * 0.08;
+  }
+  if(drumParts.crash) {
+    drumParts.crash.rotation.z = sim.kick * 0.12;
+  }
+  // Guitar strum wobble
+  if(guitarGroup) {
+    guitarGroup.rotation.z = 0.04 + Math.sin(elapsed*14)*sim.guitar*0.028;
+    guitarGroup.position.y = sim.guitar*0.06;
+  }
+  // Bass wobble
+  if(bassGroup) {
+    bassGroup.rotation.z = -0.04 - Math.sin(elapsed*9)*sim.bass*0.022;
+    bassGroup.position.y = sim.bass*0.05;
+  }
+  // Mic sway
+  if(micGroup) {
+    micGroup.rotation.z = Math.sin(elapsed*4)*sim.vocals*0.018;
+  }
+
+  // ── Instrument spot lights ──
+  iLights.drums.intensity  = 1.8 + sim.kick   * 5;
+  iLights.guitar.intensity = 1.8 + sim.guitar  * 4.5;
+  iLights.bass.intensity   = 1.8 + sim.bass    * 4.5;
+  iLights.vocals.intensity = 1.8 + sim.vocals  * 4.5;
+
+  // ── Sweep lights + beams ──
+  sweepLights.forEach(function(s,i){
+    var ang=elapsed*.55+s.phase;
+    s.light.position.x=Math.sin(ang)*16;
+    s.light.position.z=-40+Math.cos(ang*.75)*7;
+    s.light.color.setHSL((elapsed*.08+i*.25)%1, 1.0, 0.5);
+    s.light.intensity=2.8+sim.kick*4.5;
+  });
+  beams.forEach(function(b,i){
+    var ang=elapsed*.55+b.phase;
+    b.mesh.position.x=Math.sin(ang)*16;
+    b.mesh.rotation.x=Math.sin(elapsed*.7+i)*0.32+0.15;
+    b.mesh.rotation.z=Math.sin(elapsed*.5+i*1.2)*0.28;
+    beamMats[i].emissive.setHSL((elapsed*.08+i*.25)%1, 1.0, 0.5);
+    beamMats[i].emissiveIntensity=0.45+sim.kick*0.7;
+    beamMats[i].opacity=0.07+sim.kick*0.08;
+  });
+  strobeLight.intensity=Math.max(0, strobeLight.intensity-dt*28);
+  if(sim.kick>0.9) strobeLight.intensity=9;
+
+  // ── Zone proximity ──
+  if(running) {
+    var nearName=null, nearDist=9999;
+    Object.keys(ZONES).forEach(function(name) {
+      var z=ZONES[name], d=camera.position.distanceTo(z.pos);
+      var norm=Math.max(0,1-d/22), iv=sim.get(z.inst);
+      zoneLights[name].intensity=.35+norm*5+iv*2.5;
+      if(z.ring){ z.ring.material.emissiveIntensity=.35+iv*.65; z.ring.scale.setScalar(1+iv*.12); }
+      if(d<nearDist){ nearDist=d; nearName=name; }
+    });
+    var zEl=document.getElementById('zone');
+    if(nearDist<14&&nearName){ zEl.textContent=ZONES[nearName].label; zEl.style.color=ZONES[nearName].hex; zEl.style.display='block'; }
+    else zEl.style.display='none';
+    bloom.strength=1.2+sim.kick*1.0;
+
+    // ── Distance-based volume ──
+    if(audioEl) {
+      var distToStage=Math.max(0, camera.position.z+28); // dist from stage front
+      audioEl.volume=Math.max(0.04, Math.min(1.0, (50-distToStage)/46));
+    }
+    if(ytIframe) {
+      try {
+        var dv=Math.round(Math.max(4, Math.min(100, (50-Math.max(0,camera.position.z+28))/46*100)));
+        ytIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[dv]}),'*');
+      } catch(e){}
+    }
+  }
+
+  composer.render();
+})();
+
+// ─────────────────────────────────────────────
+//  Auto-beat  (visual-only driver for YouTube mode)
+// ─────────────────────────────────────────────
+function startAutoBeat() {
+  var BPM=128, stepMs=(60000/BPM)/4;
+  var PAB={
+    kick:  [1,0,0,0, 1,0,0,0, 1,0,0,1, 0,0,0,0],
+    snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    hihat: [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
+    bass:  [1,0,1,0, 1,0,0,0, 1,0,1,0, 1,0,0,0],
+    guit:  [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    mel:   [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0]
+  };
+  var s=0;
+  (function tick(){
+    if(PAB.kick[s])  sim.kick  =1.0;
+    if(PAB.snare[s]) sim.snare =1.0;
+    if(PAB.hihat[s]) sim.hihat =0.8;
+    if(PAB.bass[s])  sim.bass  =0.9;
+    if(PAB.guit[s])  sim.guitar=0.85;
+    if(PAB.mel[s])   sim.vocals=0.9;
+    s=(s+1)%16;
+    if(running) setTimeout(tick, stepMs);
+  })();
+}
+
+// ─────────────────────────────────────────────
+//  START BUTTON
+// ─────────────────────────────────────────────
+document.getElementById('enterBtn').addEventListener('click', function() {
+  var url=document.getElementById('urlInput').value.trim();
+  var id=url?parseYTId(url):null;
+  var errEl=document.getElementById('urlErr');
+  if(url&&!id) {
+    document.getElementById('urlInput').classList.add('err');
+    errEl.style.display='block';
+    setTimeout(function(){ document.getElementById('urlInput').classList.remove('err'); errEl.style.display='none'; },2500);
+    return;
+  }
+  errEl.style.display='none';
+
+  var screen=document.getElementById('start');
+  screen.classList.add('out');
+  setTimeout(function(){ screen.style.display='none'; },900);
+
+  document.getElementById('hud').style.display='block';
+  document.getElementById('lock').style.display='block';
+
+  camera.position.set(0,1.7,22); yaw=0; pitch=0;
+  running=true;
+
+  // Start synth (requires user gesture – button click qualifies)
+  if(id) {
+    // YouTube mode
+    startAutoBeat();
+    var wrap=document.getElementById('ytWrap');
+    var iframe=document.createElement('iframe');
+    iframe.width='267'; iframe.height='150';
+    iframe.src='https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1';
+    iframe.title='YouTube video player';
+    iframe.frameBorder='0';
+    iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    iframe.referrerPolicy='strict-origin-when-cross-origin';
+    iframe.allowFullscreen=true;
+    wrap.appendChild(iframe);
+    ytIframe=iframe;
+    wrap.classList.add('active');
+    document.getElementById('ytToggle').style.display='block';
+    (function(){
+      var tog=document.getElementById('ytToggle'), hidden=false;
+      tog.addEventListener('click',function(){
+        hidden=!hidden;
+        wrap.style.opacity=hidden?'0':''; wrap.style.pointerEvents=hidden?'none':'';
+        tog.textContent=hidden?'▲ MUSIC':'▼ MUSIC';
+      });
+    })();
+
+  } else if(pickedFile) {
+    // Local audio file mode
+    startAutoBeat();
+    audioEl=document.getElementById('audioPlayer');
+    audioEl.src=URL.createObjectURL(pickedFile);
+    audioEl.volume=0.04; // start quiet – distance controls volume
+    audioEl.play();
+    var aw=document.getElementById('audioWrap');
+    aw.style.display='block';
+    (function(){
+      var tog=document.getElementById('audioToggle'), hidden=false;
+      tog.addEventListener('click',function(){
+        hidden=!hidden;
+        audioEl.style.display=hidden?'none':'block';
+        tog.textContent=hidden?'▲ MUSIC':'▼ MUSIC';
+      });
+    })();
+  } else {
+    // Synth mode: built-in music drives both audio and visuals
+    Synth.on('kick',   function(){ sim.kick  =1.0; });
+    Synth.on('snare',  function(){ sim.snare =1.0; });
+    Synth.on('hihat',  function(){ sim.hihat =0.8; });
+    Synth.on('bass',   function(){ sim.bass  =0.9; });
+    Synth.on('guitar', function(){ sim.guitar=0.85; });
+    Synth.on('melody', function(){ sim.vocals=0.9; });
+    Synth.start();
+  }
+
+  setTimeout(function(){ renderer.domElement.requestPointerLock(); },500);
+});
+
+// ─────────────────────────────────────────────
+//  RESIZE
+// ─────────────────────────────────────────────
+window.addEventListener('resize', function() {
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  composer.setSize(window.innerWidth,window.innerHeight);
+  bloom.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
